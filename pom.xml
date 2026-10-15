@@ -8,7 +8,7 @@
 	<artifactId>emf-parsley-testing-example</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
-	<name>emf-parsley-testing-example</name>
+	<name>emf-parsley-junit4-examples</name>
 	<url>http://www.example.com</url>
 
 	<properties>
