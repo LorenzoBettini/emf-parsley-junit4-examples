@@ -121,11 +121,9 @@ public class EmfTreeViewerTest {
 
 		@Override
 		public Object[] getElements(Object element) {
-			// The viewer input must be an invisible container (e.g. Object[]),
-			// not a displayed element itself: AbstractTreeViewer routes
-			// getRawChildren(input) to getElements(input), so returning
-			// new Object[] { element } when element is the input makes the
-			// input its own child and expandAll() recurses until the VM crashes.
+			// In this example, the input is an invisible container of root elements.
+			// Returning the input itself as a displayed element would create a
+			// recursive traversal when the viewer expands the hierarchy.
 			if (element instanceof Object[] array) {
 				return array;
 			}
