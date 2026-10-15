@@ -5,11 +5,10 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>io.github.lorenzobettini</groupId>
-	<artifactId>emf-parsley-testing-example</artifactId>
+	<artifactId>emf-parsley-junit4-examples</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
 	<name>emf-parsley-junit4-examples</name>
-	<url>http://www.example.com</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -21,6 +20,13 @@
 			<groupId>org.eclipse.platform</groupId>
 			<artifactId>org.eclipse.jface</artifactId>
 			<version>3.40.0</version>
+		</dependency>
+		<!-- A small dynamic Ecore metamodel, used only by tests. -->
+		<dependency>
+			<groupId>org.eclipse.emf</groupId>
+			<artifactId>org.eclipse.emf.ecore</artifactId>
+			<version>2.42.0</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
