@@ -14,7 +14,7 @@ import org.junit.Test;
 /**
  * Unit test for simple App.
  */
-public class MyTreeViewerTest {
+public class TreeViewerTest {
 	@Rule
 	public DisplayHelperTestRule displayHelper = new DisplayHelperTestRule();
 
