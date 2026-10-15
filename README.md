@@ -13,7 +13,7 @@ The examples are intentionally small: each one demonstrates a concrete testing b
 - A graphical desktop session for the SWT/JFace tests. The EMF-only tests do not need a display.
 - Network access to Maven repositories on the first build, unless dependencies are already cached.
 
-The Maven project uses JUnit **4.13.2**, JFace **3.40.0**, EMF Ecore **2.42.0**, and the EMF Parsley JUnit support artifact **1.18.0**. These are independently versioned dependencies; see `pom.xml` for their exact coordinates.
+The Maven project uses JUnit **4.13.2**, JFace **3.40.0**, EMF Ecore **2.42.0**, and the EMF Parsley JUnit support artifact **1.18.0**. The Data Binding example additionally uses EMF Data Binding **1.9.0** and JFace Data Binding **1.16.0** as test-scoped dependencies. These libraries have independent version numbers; see `pom.xml` for their exact coordinates.
 
 ### Running from the command line
 
@@ -24,7 +24,7 @@ mvn test
 Run one example at a time:
 
 ```sh
-mvn -Dtest=MyTreeViewerTest test
+mvn -Dtest=TreeViewerTest test
 mvn -Dtest=TableViewerTest test
 mvn -Dtest=DynamicEmfModelTest test
 ```
@@ -39,9 +39,13 @@ mvn -Dtest=DynamicEmfModelTest test
 
 | Test | What it demonstrates | Needs SWT/display? | Uses EMF Parsley testing support? |
 | --- | --- | --- | --- |
-| `MyTreeViewerTest` | `DisplayHelperTestRule`, JFace tree content and labels, SWT `TreeItem` assertions | Yes | Yes |
+| `TreeViewerTest` | `DisplayHelperTestRule`, JFace tree content and labels, SWT `TreeItem` assertions | Yes | Yes |
 | `TableViewerTest` | A real `TableViewer` with two columns, content/label providers, rendered cell values, and selection | Yes | Yes |
 | `DynamicEmfModelTest` | Dynamic Ecore model, `EObject` values, and EMF change notifications | No | No; plain JUnit is sufficient |
+| `EmfTreeViewerTest` | Dynamic EMF containment model in a JFace tree; structural and label updates from EMF notifications | Yes | Yes |
+| `UiThreadTest` | Cross-thread `Display.syncExec`, UI-thread identity, and event-loop pumping | Yes | Yes |
+| `WidgetEventsTest` | SWT listener dispatch and queued `Display.asyncExec` without simulated native input | Yes | Yes |
+| `EmfDataBindingTest` | Bidirectional binding of an EMF attribute to an SWT `Text` in an explicit `DisplayRealm` | Yes | Yes |
 
 The EMF-only test intentionally **does not** use the support library: the simplest faithful test for model-only behavior needs neither SWT nor a dedicated UI test fixture.
 
@@ -49,9 +53,13 @@ The EMF-only test intentionally **does not** use the support library: the simple
 
 `DisplayHelperTestRule` manages an SWT `Display` and `Shell` for each test. The examples create and inspect real SWT/JFace widgets through `displayHelper.getShell()` and make ordinary JUnit assertions about the resulting state.
 
-SWT widget access must take place on the thread that owns the display. These starter UI tests create and inspect their controls directly on the JUnit test thread under the rule's normal execution conditions. A future example will demonstrate cross-thread `syncExec` explicitly; do not move widget assertions onto an arbitrary background thread.
+SWT widget access must take place on the thread that owns the display. These starter UI tests create and inspect their controls directly on the JUnit test thread under the rule's normal execution conditions. `UiThreadTest` demonstrates cross-thread `Display.syncExec`: a worker requests widget access, while the JUnit/UI thread dispatches the callback. It must not block on `join()` before dispatching the event loop.
 
-The rule also handles fixture cleanup. The tests do not simulate user gestures, open Eclipse views, or rely on workbench services; tests for those contracts may need a different execution environment.
+The rule also handles fixture cleanup. `WidgetEventsTest` deliberately calls `notifyListeners` to exercise a listener, not to assert that a real mouse click works. These tests do not simulate user gestures, open Eclipse views, or rely on workbench services; tests for those contracts may need a different execution environment.
+
+`EmfTreeViewerTest` deliberately uses a tiny, self-contained `ITreeContentProvider` with an `EContentAdapter` to bridge EMF notifications to the viewer. **This is not an EMF.Edit `AdapterFactoryContentProvider` test**: a generated EMF.Edit item-provider setup can perform notification-to-viewer updates for an application, but that requires additional provider infrastructure. The test illustrates the contract without it.
+
+`EmfDataBindingTest` uses the SWT display realm so that observable values and UI updates run on the correct thread. It also explicitly disposes its `DataBindingContext`, which owns the binding subscriptions.
 
 ## Project layout
 
@@ -59,23 +67,22 @@ The rule also handles fixture cleanup. The tests do not simulate user gestures, 
 pom.xml
 README.md
 src/test/java/io/github/lorenzobettini/example/
-  MyTreeViewerTest.java
+  TreeViewerTest.java
   TableViewerTest.java
   DynamicEmfModelTest.java
+  EmfTreeViewerTest.java
+  UiThreadTest.java
+  WidgetEventsTest.java
+  EmfDataBindingTest.java
 ```
 
 There is no production application in this project. Its artifact is intended as an executable example suite.
 
-## Suggested next examples
+## Further example ideas
 
-The following examples are **planned, not yet implemented**:
+The current collection includes the four originally proposed follow-ups. Potential future additions, **not implemented here**, include generated EMF.Edit item-provider tests, `AbstractEmfParsleyShellBasedTest`/`AbstractEmfParsleyControlBasedTest` usage (after checking the released API), test helpers for simulated event sequences, and controlled failure/assertion examples.
 
-1. **`EmfTreeViewerTest`:** use a small EMF containment model and an EMF.Edit content/label provider to display an EMF hierarchy; change the model and verify that the viewer refreshes through model notifications. This will need EMF.Edit dependencies and careful adapter disposal.
-2. **`UiThreadTest`:** demonstrate a background thread requesting UI access through `Display.syncExec`, safely pumping the event loop on the display thread, with no sleeps or racy timeouts.
-3. **`EmfDataBindingTest`:** bind an SWT `Text` to an EMF attribute using an appropriate default `Realm`; verify changes in both directions and clean up binding resources. This will require EMF Data Binding dependencies.
-4. **`WidgetEventsTest`:** demonstrate deterministic dispatch and observation of a focused SWT event without a full workbench or SWTBot.
-
-Examples will be added in small increments so that each can be compiled and tested on both Linux and macOS.
+Keep new tests independent of EMF Parsley's application framework; adding a more realistic client application would be a separate exercise.
 
 ## Scope and reproducibility
 
@@ -88,3 +95,7 @@ mvn dependency:tree
 ```
 
 The dependency tree may contain EMF and Eclipse platform libraries; that does not imply that the project launches the Eclipse workbench or uses the EMF Parsley application framework.
+
+## Validation status
+
+The original three tests in the supplied archive were reported as working on Eclipse and Maven. **The four additional example classes have not yet been run** on Linux or macOS in the environment where this ZIP was prepared. Please run `mvn clean test` and report any compiler errors or platform-specific behavior so the examples can be corrected before publishing this as a reproducibility artifact.
