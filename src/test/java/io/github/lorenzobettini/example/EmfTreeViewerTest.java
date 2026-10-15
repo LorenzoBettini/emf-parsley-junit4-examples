@@ -158,10 +158,12 @@ public class EmfTreeViewerTest {
 		}
 
 		private static EObject extractRoot(Object newInput) {
-			if (newInput instanceof Object[] array && array.length > 0 && array[0] instanceof EObject root) {
+			if (newInput instanceof Object[] array
+					&& array.length > 0
+					&& array[0] instanceof EObject root) {
 				return root;
 			}
-			return newInput instanceof EObject object ? object : null;
+			return null;
 		}
 
 		@Override
