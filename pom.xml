@@ -20,12 +20,13 @@
 			<groupId>org.eclipse.platform</groupId>
 			<artifactId>org.eclipse.jface</artifactId>
 			<version>3.40.0</version>
+			<scope>test</scope>
 		</dependency>
 		<!-- A small dynamic Ecore metamodel, used only by tests. -->
 		<dependency>
 			<groupId>org.eclipse.emf</groupId>
 			<artifactId>org.eclipse.emf.ecore</artifactId>
-			<version>2.42.0</version>
+			<version>2.43.0</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- For the standalone EMF/SWT two-way binding example. -->
@@ -52,6 +53,23 @@
 			<artifactId>org.eclipse.emf.parsley.junit4</artifactId>
 			<version>1.18.0</version>
 			<scope>test</scope>
+		</dependency>
+		<!-- For using EMF Parsley testing library abstract classes -->
+		<dependency>
+			<groupId>com.google.inject</groupId>
+			<artifactId>guice</artifactId>
+			<version>7.0.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.emf</groupId>
+			<artifactId>org.eclipse.emf.edit</artifactId>
+			<version>2.24.0</version>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.reload4j</groupId>
+			<artifactId>reload4j</artifactId>
+			<version>1.2.26</version>
 		</dependency>
 	</dependencies>
 

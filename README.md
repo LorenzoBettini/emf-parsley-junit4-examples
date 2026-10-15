@@ -27,6 +27,8 @@ Run one example at a time:
 mvn -Dtest=TreeViewerTest test
 mvn -Dtest=TableViewerTest test
 mvn -Dtest=DynamicEmfModelTest test
+mvn -Dtest=ShellBasedTest test
+mvn -Dtest=ControlBasedTest test
 ```
 
 **macOS:** SWT requires its UI thread to be the first thread. The existing `macos` Maven profile is activated automatically on macOS and supplies `-XstartOnFirstThread` to Surefire via `argLine`. This matters for the SWT/JFace tests; the EMF-only tests are not UI-thread dependent.
@@ -46,6 +48,7 @@ mvn -Dtest=DynamicEmfModelTest test
 | `UiThreadTest` | Cross-thread `Display.syncExec`, UI-thread identity, and event-loop pumping | Yes | Yes |
 | `WidgetEventsTest` | SWT listener dispatch and queued `Display.asyncExec` without simulated native input | Yes | Yes |
 | `EmfDataBindingTest` | Bidirectional binding of an EMF attribute to an SWT `Text` in an explicit `DisplayRealm` | Yes | Yes |
+| `ShellBasedTest` | Inherited `Display`/`Shell` fixture, `syncExec`, `syncExecVoid`, and `execAndFlushPendingEvents` | Yes | Yes |
 
 The EMF-only test intentionally **does not** use the support library: the simplest faithful test for model-only behavior needs neither SWT nor a dedicated UI test fixture.
 
@@ -54,6 +57,8 @@ The EMF-only test intentionally **does not** use the support library: the simple
 `DisplayHelperTestRule` manages an SWT `Display` and `Shell` for each test. The examples create and inspect real SWT/JFace widgets through `displayHelper.getShell()` and make ordinary JUnit assertions about the resulting state.
 
 SWT widget access must take place on the thread that owns the display. These starter UI tests create and inspect their controls directly on the JUnit test thread under the rule's normal execution conditions. `UiThreadTest` demonstrates cross-thread `Display.syncExec`: a worker requests widget access, while the JUnit/UI thread dispatches the callback. It must not block on `join()` before dispatching the event loop.
+
+Alternatively, `ShellBasedTest` derives from `AbstractEmfParsleyShellBasedTest`, which already installs the same rule and exposes `getShell()`, `getDisplay()`, `syncExec`, `syncExecVoid`, and `execAndFlushPendingEvents`. Do not declare an additional `@Rule` field in subclasses: the inherited rule manages fixture cleanup. The `syncExec` family runs operations on the SWT display thread; `execAndFlushPendingEvents` runs its supplier in the **calling thread** and then drains pending display events, so it is not a replacement for UI-thread marshalling.
 
 The rule also handles fixture cleanup. `WidgetEventsTest` deliberately calls `notifyListeners` to exercise a listener, not to assert that a real mouse click works. These tests do not simulate user gestures, open Eclipse views, or rely on workbench services; tests for those contracts may need a different execution environment.
 
@@ -74,13 +79,14 @@ src/test/java/io/github/lorenzobettini/example/
   UiThreadTest.java
   WidgetEventsTest.java
   EmfDataBindingTest.java
+  ShellBasedTest.java
 ```
 
 There is no production application in this project. Its artifact is intended as an executable example suite.
 
 ## Further example ideas
 
-The current collection includes the four originally proposed follow-ups. Potential future additions, **not implemented here**, include generated EMF.Edit item-provider tests, `AbstractEmfParsleyShellBasedTest`/`AbstractEmfParsleyControlBasedTest` usage (after checking the released API), test helpers for simulated event sequences, and controlled failure/assertion examples.
+The collection now includes examples of both SWT-oriented abstract classes. Potential future additions, **not implemented here**, include generated EMF.Edit item-provider tests, a focused example of `AbstractEmfParsleyTest` dependency-injection utilities, and test helpers for more complex event sequences.
 
 Keep new tests independent of EMF Parsley's application framework; adding a more realistic client application would be a separate exercise.
 
@@ -95,7 +101,3 @@ mvn dependency:tree
 ```
 
 The dependency tree may contain EMF and Eclipse platform libraries; that does not imply that the project launches the Eclipse workbench or uses the EMF Parsley application framework.
-
-## Validation status
-
-The original three tests in the supplied archive were reported as working on Eclipse and Maven. **The four additional example classes have not yet been run** on Linux or macOS in the environment where this ZIP was prepared. Please run `mvn clean test` and report any compiler errors or platform-specific behavior so the examples can be corrected before publishing this as a reproducibility artifact.
