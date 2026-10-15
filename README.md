@@ -13,8 +13,6 @@ The examples are intentionally small: each one demonstrates a concrete testing b
 - A graphical desktop session for the SWT/JFace tests. The EMF-only tests do not need a display.
 - Network access to Maven repositories on the first build, unless dependencies are already cached.
 
-The Maven project uses JUnit **4.13.2**, JFace **3.40.0**, EMF Ecore **2.42.0**, and the EMF Parsley JUnit support artifact **1.18.0**. The Data Binding example additionally uses EMF Data Binding **1.9.0** and JFace Data Binding **1.16.0** as test-scoped dependencies. These libraries have independent version numbers; see `pom.xml` for their exact coordinates.
-
 ### Running from the command line
 
 ```sh
