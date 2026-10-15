@@ -24,193 +24,191 @@ import org.junit.Test;
 
 /**
  * Shows how an ordinary JFace TreeViewer can follow dynamic EMF model changes.
- * No EMF Parsley application components, generated model, or workbench are needed.
+ * No EMF Parsley application components, generated model, or workbench are
+ * needed.
  */
 public class EmfTreeViewerTest {
 
-    @Rule
-    public DisplayHelperTestRule displayHelper = new DisplayHelperTestRule();
+	@Rule
+	public DisplayHelperTestRule displayHelper = new DisplayHelperTestRule();
 
-    private record Model(EClass nodeType, EAttribute name, EReference children) {
-        EObject newNode(String label) {
-            EObject node = EcoreUtil.create(nodeType);
-            node.eSet(name, label);
-            return node;
-        }
+	private record Model(EClass nodeType, EAttribute name, EReference children) {
+		EObject newNode(String label) {
+			EObject node = EcoreUtil.create(nodeType);
+			node.eSet(name, label);
+			return node;
+		}
 
-        @SuppressWarnings("unchecked")
-        EList<EObject> childrenOf(EObject node) {
-            return (EList<EObject>) node.eGet(children);
-        }
-    }
+		@SuppressWarnings("unchecked")
+		EList<EObject> childrenOf(EObject node) {
+			return (EList<EObject>) node.eGet(children);
+		}
+	}
 
-    private static Model createModel() {
-        var factory = EcoreFactory.eINSTANCE;
-        var ePackage = factory.createEPackage();
-        ePackage.setName("nodes");
-        ePackage.setNsPrefix("nodes");
-        ePackage.setNsURI("https://example.org/nodes");
-        ePackage.setEFactoryInstance(factory.createEFactory());
+	private static Model createModel() {
+		var factory = EcoreFactory.eINSTANCE;
+		var ePackage = factory.createEPackage();
+		ePackage.setName("nodes");
+		ePackage.setNsPrefix("nodes");
+		ePackage.setNsURI("https://example.org/nodes");
+		ePackage.setEFactoryInstance(factory.createEFactory());
 
-        var node = factory.createEClass();
-        node.setName("Node");
-        ePackage.getEClassifiers().add(node);
+		var node = factory.createEClass();
+		node.setName("Node");
+		ePackage.getEClassifiers().add(node);
 
-        var name = factory.createEAttribute();
-        name.setName("name");
-        name.setEType(EcorePackage.Literals.ESTRING);
-        node.getEStructuralFeatures().add(name);
+		var name = factory.createEAttribute();
+		name.setName("name");
+		name.setEType(EcorePackage.Literals.ESTRING);
+		node.getEStructuralFeatures().add(name);
 
-        var children = factory.createEReference();
-        children.setName("children");
-        children.setEType(node);
-        children.setContainment(true);
-        children.setUpperBound(-1);
-        node.getEStructuralFeatures().add(children);
-        return new Model(node, name, children);
-    }
+		var children = factory.createEReference();
+		children.setName("children");
+		children.setEType(node);
+		children.setContainment(true);
+		children.setUpperBound(-1);
+		node.getEStructuralFeatures().add(children);
+		return new Model(node, name, children);
+	}
 
-    /**
-     * Minimal bridge from EMF notifications to a JFace TreeViewer.
-     * This small example handles child additions and label changes, not every
-     * possible EMF notification (removals, moves, bulk changes, etc.).
-     *
-     * The viewer is updated asynchronously to avoid modifying SWT tree items
-     * reentrantly while the EMF notification is being delivered.
-     */
-    private static class ModelContentProvider implements ITreeContentProvider {
-        private final EAttribute name;
-        private final EReference children;
-        private final Display display;
-        private TreeViewer viewer;
-        private EObject input;
+	/**
+	 * Minimal bridge from EMF notifications to a JFace TreeViewer. This small
+	 * example handles child additions and label changes, not every possible EMF
+	 * notification (removals, moves, bulk changes, etc.).
+	 *
+	 * The viewer is updated asynchronously to avoid modifying SWT tree items
+	 * reentrantly while the EMF notification is being delivered.
+	 */
+	private static class ModelContentProvider implements ITreeContentProvider {
+		private final EAttribute name;
+		private final EReference children;
+		private final Display display;
+		private TreeViewer viewer;
+		private EObject input;
 
-        private final EContentAdapter adapter = new EContentAdapter() {
-            @Override
-            public void notifyChanged(Notification notification) {
-                // EContentAdapter propagates itself to newly contained EObjects.
-                super.notifyChanged(notification);
+		private final EContentAdapter adapter = new EContentAdapter() {
+			@Override
+			public void notifyChanged(Notification notification) {
+				// EContentAdapter propagates itself to newly contained EObjects.
+				super.notifyChanged(notification);
 
-                if (notification.getFeature() == children
-                        && notification.getEventType() == Notification.ADD
-                        && notification.getNotifier() instanceof EObject parent
-                        && notification.getNewValue() instanceof EObject child) {
-                    // Incremental insertion avoids refreshing/rebuilding the tree.
-                    scheduleUiUpdate(() -> viewer.add(parent, child));
-                } else if (notification.getFeature() == name
-                        && notification.getNotifier() instanceof EObject element) {
-                    scheduleUiUpdate(() -> viewer.update(element, null));
-                }
-            }
-        };
+				if (notification.getFeature() == children && notification.getEventType() == Notification.ADD
+						&& notification.getNotifier() instanceof EObject parent
+						&& notification.getNewValue() instanceof EObject child) {
+					// Incremental insertion avoids refreshing/rebuilding the tree.
+					scheduleUiUpdate(() -> viewer.add(parent, child));
+				} else if (notification.getFeature() == name && notification.getNotifier() instanceof EObject element) {
+					scheduleUiUpdate(() -> viewer.update(element, null));
+				}
+			}
+		};
 
-        ModelContentProvider(EAttribute name, EReference children, Display display) {
-            this.name = name;
-            this.children = children;
-            this.display = display;
-        }
+		ModelContentProvider(EAttribute name, EReference children, Display display) {
+			this.name = name;
+			this.children = children;
+			this.display = display;
+		}
 
-        private void scheduleUiUpdate(Runnable action) {
-            // asyncExec is safe to call from either the SWT or a worker thread.
-            // All SWT widget access is performed later on the Display thread.
-            display.asyncExec(() -> {
-                if (viewer != null && !viewer.getControl().isDisposed()) {
-                    action.run();
-                }
-            });
-        }
+		private void scheduleUiUpdate(Runnable action) {
+			// asyncExec is safe to call from either the SWT or a worker thread.
+			// All SWT widget access is performed later on the Display thread.
+			display.asyncExec(() -> {
+				if (viewer != null && !viewer.getControl().isDisposed()) {
+					action.run();
+				}
+			});
+		}
 
-        @Override
-        public Object[] getElements(Object element) {
-            // The viewer input must be an invisible container (e.g. Object[]),
-            // not a displayed element itself: AbstractTreeViewer routes
-            // getRawChildren(input) to getElements(input), so returning
-            // new Object[] { element } when element is the input makes the
-            // input its own child and expandAll() recurses until the VM crashes.
-            if (element instanceof Object[] array) {
-                return array;
-            }
-            return new Object[0];
-        }
+		@Override
+		public Object[] getElements(Object element) {
+			// The viewer input must be an invisible container (e.g. Object[]),
+			// not a displayed element itself: AbstractTreeViewer routes
+			// getRawChildren(input) to getElements(input), so returning
+			// new Object[] { element } when element is the input makes the
+			// input its own child and expandAll() recurses until the VM crashes.
+			if (element instanceof Object[] array) {
+				return array;
+			}
+			return new Object[0];
+		}
 
-        @Override
-        public Object[] getChildren(Object parentElement) {
-            return ((EObject) parentElement).eContents().toArray();
-        }
+		@Override
+		public Object[] getChildren(Object parentElement) {
+			return ((EObject) parentElement).eContents().toArray();
+		}
 
-        @Override
-        public Object getParent(Object element) {
-            return ((EObject) element).eContainer();
-        }
+		@Override
+		public Object getParent(Object element) {
+			return ((EObject) element).eContainer();
+		}
 
-        @Override
-        public boolean hasChildren(Object element) {
-            return !((EObject) element).eContents().isEmpty();
-        }
+		@Override
+		public boolean hasChildren(Object element) {
+			return !((EObject) element).eContents().isEmpty();
+		}
 
-        @Override
-        public void inputChanged(Viewer newViewer, Object oldInput, Object newInput) {
-            if (input != null) {
-                input.eAdapters().remove(adapter);
-            }
-            viewer = (TreeViewer) newViewer;
-            input = extractRoot(newInput);
-            if (input != null) {
-                input.eAdapters().add(adapter);
-            }
-        }
+		@Override
+		public void inputChanged(Viewer newViewer, Object oldInput, Object newInput) {
+			if (input != null) {
+				input.eAdapters().remove(adapter);
+			}
+			viewer = (TreeViewer) newViewer;
+			input = extractRoot(newInput);
+			if (input != null) {
+				input.eAdapters().add(adapter);
+			}
+		}
 
-        private static EObject extractRoot(Object newInput) {
-            if (newInput instanceof Object[] array && array.length > 0
-                    && array[0] instanceof EObject root) {
-                return root;
-            }
-            return newInput instanceof EObject object ? object : null;
-        }
+		private static EObject extractRoot(Object newInput) {
+			if (newInput instanceof Object[] array && array.length > 0 && array[0] instanceof EObject root) {
+				return root;
+			}
+			return newInput instanceof EObject object ? object : null;
+		}
 
-        @Override
-        public void dispose() {
-            if (input != null) {
-                input.eAdapters().remove(adapter);
-                input = null;
-            }
-            viewer = null;
-        }
-    }
+		@Override
+		public void dispose() {
+			if (input != null) {
+				input.eAdapters().remove(adapter);
+				input = null;
+			}
+			viewer = null;
+		}
+	}
 
-    @Test
-    public void treeReflectsEmfContainmentAndAttributeNotifications() {
-        var model = createModel();
-        var root = model.newNode("Root");
-        var first = model.newNode("First");
-        model.childrenOf(root).add(first);
+	@Test
+	public void treeReflectsEmfContainmentAndAttributeNotifications() {
+		var model = createModel();
+		var root = model.newNode("Root");
+		var first = model.newNode("First");
+		model.childrenOf(root).add(first);
 
-        var viewer = new TreeViewer(displayHelper.getShell(), SWT.BORDER);
-        viewer.setContentProvider(new ModelContentProvider(model.name(), model.children(), displayHelper.getDisplay()));
-        viewer.setLabelProvider(new LabelProvider() {
-            @Override
-            public String getText(Object element) {
-                return (String) ((EObject) element).eGet(model.name());
-            }
-        });
-        viewer.setInput(new Object[] { root });
-        viewer.expandAll();
+		var viewer = new TreeViewer(displayHelper.getShell(), SWT.BORDER);
+		viewer.setContentProvider(new ModelContentProvider(model.name(), model.children(), displayHelper.getDisplay()));
+		viewer.setLabelProvider(new LabelProvider() {
+			@Override
+			public String getText(Object element) {
+				return (String) ((EObject) element).eGet(model.name());
+			}
+		});
+		viewer.setInput(new Object[] { root });
+		viewer.expandAll();
 
-        var tree = viewer.getTree();
-        assertEquals(1, tree.getItemCount());
-        assertEquals("Root", tree.getItem(0).getText());
-        assertEquals(1, tree.getItem(0).getItemCount());
-        assertEquals("First", tree.getItem(0).getItem(0).getText());
+		var tree = viewer.getTree();
+		assertEquals(1, tree.getItemCount());
+		assertEquals("Root", tree.getItem(0).getText());
+		assertEquals(1, tree.getItem(0).getItemCount());
+		assertEquals("First", tree.getItem(0).getItem(0).getText());
 
-        // The provider reacts to EMF notifications by posting UI updates.
-        // Flush the display queue before inspecting the SWT widgets.
-        model.childrenOf(root).add(model.newNode("Second"));
-        displayHelper.flushPendingEvents();
-        assertEquals(2, tree.getItem(0).getItemCount());
-        assertEquals("Second", tree.getItem(0).getItem(1).getText());
+		// The provider reacts to EMF notifications by posting UI updates.
+		// Flush the display queue before inspecting the SWT widgets.
+		model.childrenOf(root).add(model.newNode("Second"));
+		displayHelper.flushPendingEvents();
+		assertEquals(2, tree.getItem(0).getItemCount());
+		assertEquals("Second", tree.getItem(0).getItem(1).getText());
 
-        first.eSet(model.name(), "Updated first");
-        displayHelper.flushPendingEvents();
-        assertEquals("Updated first", tree.getItem(0).getItem(0).getText());
-    }
+		first.eSet(model.name(), "Updated first");
+		displayHelper.flushPendingEvents();
+		assertEquals("Updated first", tree.getItem(0).getItem(0).getText());
+	}
 }
