@@ -122,7 +122,15 @@ public class EmfTreeViewerTest {
 
         @Override
         public Object[] getElements(Object element) {
-            return element == null ? new Object[0] : new Object[] {element};
+            // The viewer input must be an invisible container (e.g. Object[]),
+            // not a displayed element itself: AbstractTreeViewer routes
+            // getRawChildren(input) to getElements(input), so returning
+            // new Object[] { element } when element is the input makes the
+            // input its own child and expandAll() recurses until the VM crashes.
+            if (element instanceof Object[] array) {
+                return array;
+            }
+            return new Object[0];
         }
 
         @Override
@@ -146,10 +154,18 @@ public class EmfTreeViewerTest {
                 input.eAdapters().remove(adapter);
             }
             viewer = (TreeViewer) newViewer;
-            input = newInput instanceof EObject object ? object : null;
+            input = extractRoot(newInput);
             if (input != null) {
                 input.eAdapters().add(adapter);
             }
+        }
+
+        private static EObject extractRoot(Object newInput) {
+            if (newInput instanceof Object[] array && array.length > 0
+                    && array[0] instanceof EObject root) {
+                return root;
+            }
+            return newInput instanceof EObject object ? object : null;
         }
 
         @Override
@@ -177,7 +193,7 @@ public class EmfTreeViewerTest {
                 return (String) ((EObject) element).eGet(model.name());
             }
         });
-        viewer.setInput(root);
+        viewer.setInput(new Object[] { root });
         viewer.expandAll();
 
         var tree = viewer.getTree();
