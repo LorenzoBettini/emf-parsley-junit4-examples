@@ -11,6 +11,7 @@
 	<name>emf-parsley-junit4-examples</name>
 
 	<properties>
+		<org.eclipse.emf.parsley.junit4-version>1.18.0</org.eclipse.emf.parsley.junit4-version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.release>21</maven.compiler.release>
 	</properties>
@@ -51,7 +52,7 @@
 		<dependency>
 			<groupId>org.eclipse.emf.parsley</groupId>
 			<artifactId>org.eclipse.emf.parsley.junit4</artifactId>
-			<version>1.18.0</version>
+			<version>${org.eclipse.emf.parsley.junit4-version}</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- For using EMF Parsley testing library abstract classes -->
